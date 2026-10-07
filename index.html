@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daily check-in</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1f7a78">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eaf4f3; --surface:#f8fcfb; --ink:#17383b; --muted:#55777a; --accent:#1f7a78; --accent-ink:#ffffff; --line:#c9dfdd;
+  --m5:#bfe8d6; --m4:#bfe3e2; --m3:#bcd9ea; --m2:#a9c3e6; --m1:#98aedb;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1f21; --surface:#162a2c; --ink:#e2f1ef; --muted:#8fb0ae; --accent:#5cc2b9; --accent-ink:#0c1d1c; --line:#27474a;
+    --m5:#1f4a3f; --m4:#1f4a4f; --m3:#1f4260; --m2:#27406c; --m1:#2d3c72;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1f21; --surface:#162a2c; --ink:#e2f1ef; --muted:#8fb0ae; --accent:#5cc2b9; --accent-ink:#0c1d1c; --line:#27474a;
+  --m5:#1f4a3f; --m4:#1f4a4f; --m3:#1f4260; --m2:#27406c; --m1:#2d3c72;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.5;font-size:17px}
+.wrap{max-width:460px;margin:0 auto;padding:28px 18px 48px}
+h1{font-size:1.75rem;line-height:1.2;margin:0 0 6px;font-weight:700}
+.lead{margin:0 0 22px;color:var(--muted)}
+.moods{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.mood{width:100%;display:flex;align-items:center;gap:14px;padding:14px 16px;border:2px solid transparent;border-radius:16px;font:inherit;font-weight:500;color:var(--ink);text-align:left;cursor:pointer;min-height:60px}
+.mood .em{font-size:1.7rem;line-height:1}
+.mood[data-k="5"]{background:var(--m5)} .mood[data-k="4"]{background:var(--m4)} .mood[data-k="3"]{background:var(--m3)}
+.mood[data-k="2"]{background:var(--m2)} .mood[data-k="1"]{background:var(--m1)}
+.mood[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+.mood:focus-visible,.btn:focus-visible,textarea:focus-visible,.link:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+#noteBox{margin-top:22px}
+label{display:block;font-weight:500;margin-bottom:8px}
+textarea{width:100%;min-height:92px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);font:inherit;resize:vertical}
+.btn{margin-top:12px;width:100%;padding:14px;border:0;border-radius:14px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:700;cursor:pointer;min-height:52px}
+.thanks{margin-top:22px;padding:14px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+.hidden{display:none}
+h2{font-size:1.1rem;margin:34px 0 10px}
+.log{list-style:none;margin:0;padding:0}
+.log li{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.log .e{font-size:1.4rem}
+.log .t{color:var(--muted);font-size:.88rem}
+.log .n{margin:2px 0 0;overflow-wrap:anywhere}
+.empty{color:var(--muted)}
+.help{margin-top:36px;padding-top:18px;border-top:1px solid var(--line)}
+.link{background:none;border:0;padding:6px 0;font:inherit;color:var(--accent);font-weight:700;cursor:pointer;text-decoration:underline}
+.helpbox{margin-top:8px;padding:14px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+.helpbox p{margin:0 0 8px}
+.small{color:var(--muted);font-size:.88rem;margin-top:14px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>How are you feeling right now?</h1>
+  <p class="lead">Tap the one that fits best. There are no wrong answers.</p>
+
+  <ul class="moods" id="moods"></ul>
+
+  <div id="noteBox" class="hidden">
+    <label for="note">Anything behind it? (optional)</label>
+    <textarea id="note" maxlength="200" placeholder="A few words are enough"></textarea>
+    <button class="btn" id="save" type="button">Save check-in</button>
+  </div>
+
+  <div id="thanks" class="thanks hidden" role="status">Check-in saved. Thanks for taking a moment for yourself.</div>
+
+  <h2>Recent check-ins</h2>
+  <ul class="log" id="log"></ul>
+
+  <div class="help">
+    <button class="link" id="helpBtn" type="button" aria-expanded="false" aria-controls="helpBox">Need help now?</button>
+    <div class="helpbox hidden" id="helpBox">
+      <p>If you are in immediate danger, call your local emergency number.</p>
+      <p>In the US, call or text 988 to reach the Suicide &amp; Crisis Lifeline. Elsewhere, search for your country's crisis line or emergency number.</p>
+    </div>
+    <p class="small">This is a self-help tool. It does not replace care from a doctor or mental health professional.</p>
+  </div>
+</main>
+
+<script>
+(function(){
+  var MOODS=[{k:5,e:"😌",l:"Calm"},{k:4,e:"🙂",l:"Good"},{k:3,e:"😐",l:"Okay"},{k:2,e:"😣",l:"Stressed"},{k:1,e:"😩",l:"Overwhelmed"}];
+  var KEY="moodlog", picked=null, log=[];
+  try{ log=JSON.parse(localStorage.getItem(KEY))||[]; }catch(e){ log=[]; }
+  function persist(){ try{ localStorage.setItem(KEY,JSON.stringify(log)); }catch(e){} }
+  function byK(k){ for(var i=0;i<MOODS.length;i++){ if(MOODS[i].k===k) return MOODS[i]; } return MOODS[2]; }
+
+  var moodsEl=document.getElementById("moods"), noteBox=document.getElementById("noteBox"),
+      noteEl=document.getElementById("note"), thanks=document.getElementById("thanks"),
+      logEl=document.getElementById("log");
+
+  MOODS.forEach(function(m){
+    var li=document.createElement("li"), b=document.createElement("button");
+    b.type="button"; b.className="mood"; b.setAttribute("data-k",m.k); b.setAttribute("aria-pressed","false");
+    var em=document.createElement("span"); em.className="em"; em.textContent=m.e;
+    var tx=document.createElement("span"); tx.textContent=m.l;
+    b.appendChild(em); b.appendChild(tx);
+    b.addEventListener("click",function(){
+      picked=m.k;
+      Array.prototype.forEach.call(moodsEl.querySelectorAll(".mood"),function(x){ x.setAttribute("aria-pressed", x===b?"true":"false"); });
+      thanks.classList.add("hidden");
+      noteBox.classList.remove("hidden");
+      noteEl.focus({preventScroll:true});
+      noteBox.scrollIntoView({behavior:"smooth",block:"nearest"});
+    });
+    li.appendChild(b); moodsEl.appendChild(li);
+  });
+
+  document.getElementById("save").addEventListener("click",function(){
+    if(!picked) return;
+    log.push({k:picked,n:noteEl.value.trim(),t:Date.now()});
+    if(log.length>50) log=log.slice(-50);
+    persist();
+    picked=null; noteEl.value="";
+    noteBox.classList.add("hidden");
+    Array.prototype.forEach.call(moodsEl.querySelectorAll(".mood"),function(x){ x.setAttribute("aria-pressed","false"); });
+    thanks.classList.remove("hidden");
+    render();
+  });
+
+  function render(){
+    logEl.textContent="";
+    if(!log.length){
+      var p=document.createElement("li"); p.className="empty"; p.textContent="Nothing yet. Your first check-in will show up here."; logEl.appendChild(p); return;
+    }
+    log.slice(-7).reverse().forEach(function(x){
+      var m=byK(x.k), li=document.createElement("li"), e=document.createElement("span"), d=document.createElement("div"),
+          t=document.createElement("div"), n=document.createElement("p");
+      e.className="e"; e.textContent=m.e;
+      t.className="t"; t.textContent=m.l+" · "+new Date(x.t).toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+      d.appendChild(t);
+      if(x.n){ n.className="n"; n.textContent=x.n; d.appendChild(n); }
+      li.appendChild(e); li.appendChild(d); logEl.appendChild(li);
+    });
+  }
+  render();
+
+  var hb=document.getElementById("helpBtn"), hx=document.getElementById("helpBox");
+  hb.addEventListener("click",function(){
+    var open=hx.classList.toggle("hidden")===false;
+    hb.setAttribute("aria-expanded",open?"true":"false");
+  });
+})();
+</script>
+<script>
+if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}
+</script>
+</body>
+</html>
